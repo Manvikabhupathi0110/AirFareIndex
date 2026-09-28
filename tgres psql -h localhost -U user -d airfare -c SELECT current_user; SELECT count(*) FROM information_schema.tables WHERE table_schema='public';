@@ -1,0 +1,18 @@
+                List of relations
+ Schema |        Name         | Type  |  Owner   
+--------+---------------------+-------+----------
+ public | airfare_indices     | table | postgres
+ public | airlines            | table | postgres
+ public | airports            | table | postgres
+ public | benchmark_results   | table | postgres
+ public | benchmark_runs      | table | postgres
+ public | booking_windows     | table | postgres
+ public | data_quality_flags  | table | postgres
+ public | data_sources        | table | postgres
+ public | dataset_metadata    | table | postgres
+ public | fare_observations   | table | postgres
+ public | index_contributions | table | postgres
+ public | route_weights       | table | postgres
+ public | routes              | table | postgres
+(13 rows)
+
