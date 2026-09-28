@@ -1,0 +1,1 @@
+CREATE INDEX idx_fares_route_date ON fare_observations(route_id, observed_at)

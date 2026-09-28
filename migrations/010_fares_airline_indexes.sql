@@ -1,0 +1,1 @@
+CREATE INDEX idx_fares_airline_date ON fare_observations(airline_id, observed_at)

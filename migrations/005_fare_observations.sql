@@ -1,0 +1,20 @@
+CREATE TABLE fare_observations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  route_id UUID NOT NULL REFERENCES routes(id),
+  airline_id UUID NOT NULL REFERENCES airlines(id),
+  booking_window_id UUID NOT NULL REFERENCES booking_windows(id),
+  observed_at TIMESTAMPTZ NOT NULL,
+  departure_date DATE NOT NULL,
+  days_before_departure INTEGER NOT NULL,
+  fare_inr NUMERIC(12,2) NOT NULL,
+  currency VARCHAR(3) NOT NULL DEFAULT 'INR',
+  source TEXT NOT NULL DEFAULT 'synthetic',
+  flight_number TEXT,
+  cabin_class VARCHAR(20) NOT NULL DEFAULT 'economy',
+  stops INTEGER NOT NULL DEFAULT 0,
+  is_valid BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT fare_positive CHECK (fare_inr > 0),
+  CONSTRAINT days_before_nonnegative CHECK (days_before_departure >= 0),
+  CONSTRAINT stops_nonnegative CHECK (stops >= 0)
+)

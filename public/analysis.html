@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fare Intelligence Analysis</title><link rel="stylesheet" href="/theme.css"><script src="https://cdn.tailwindcss.com"></script><script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script></head>
+<body class="font-sans antialiased" x-data="analysis()" x-init="load()" x-cloak>
+<div class="page-shell">
+<header class="topbar mb-8">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div>
+        <div class="brand-kicker">Analysis</div>
+        <h1 class="page-title">Fare Intelligence</h1>
+      </div>
+    </div>
+    <div class="nav-shell">
+      <nav class="nav-row">
+        <a href="/" class="nav-link">Overview</a>
+        <a href="/analysis.html" class="nav-link active">Analysis</a>
+        <a href="/disparity.html" class="nav-link">Disparity</a>
+        <a href="/quality.html" class="nav-link">Data Quality</a>
+        <a href="/statistics.html" class="nav-link">Statistics</a>
+        <a href="/benchmark.html" class="nav-link">DGCA Benchmark</a>
+      </nav>
+    </div>
+    <a href="/" class="button-primary">← Dashboard</a>
+  </div>
+</header>
+<section class="card p-5 mb-6"><div class="grid grid-cols-1 md:grid-cols-4 gap-4"><div><label class="smallcaps">Route</label><select x-model="filters.route" @change="loadData()" class="mt-2 w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2"><option value="">All routes</option><template x-for="r in data.filters.routes"><option :value="r.route_code" x-text="r.route_code"></option></template></select></div><div><label class="smallcaps">Airline</label><select x-model="filters.airline" @change="loadData()" class="mt-2 w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2"><option value="">All airlines</option><template x-for="a in data.filters.airlines"><option :value="a.iata_code" x-text="a.iata_code+' · '+a.name"></option></template></select></div><div><label class="smallcaps">Booking window</label><select x-model="filters.window" @change="loadData()" class="mt-2 w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2"><option value="">All windows</option><template x-for="w in data.filters.windows"><option :value="w.code" x-text="w.label"></option></template></select></div><div class="flex items-end"><button @click="reset()" class="w-full rounded-lg border border-[var(--line)] px-4 py-2 font-semibold">Reset filters</button></div></div><p class="text-xs text-[var(--muted)] mt-3">Filters affect every analysis table below; they do not alter the published index.</p></section>
+<div x-show="loading" class="card p-8 text-center text-[var(--muted)]">Loading analysis…</div><div x-show="error" class="card p-5" x-text="error"></div>
+<main x-show="!loading && !error"><section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"><div class="card p-5"><div class="smallcaps">Route groups</div><div class="text-3xl font-bold mt-2" x-text="data.routeAnalysis.length"></div></div><div class="card p-5"><div class="smallcaps">Airlines</div><div class="text-3xl font-bold mt-2" x-text="data.airlineAnalysis.length"></div></div><div class="card p-5"><div class="smallcaps">Booking windows</div><div class="text-3xl font-bold mt-2" x-text="data.windowAnalysis.length"></div></div></section>
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"><div class="card p-5"><h2 class="text-xl font-semibold">Route fare profile</h2><p class="text-sm text-[var(--muted)] mt-1 mb-4">Average, minimum and maximum observed fare.</p><div class="overflow-auto max-h-96"><table class="min-w-full text-sm"><thead><tr class="border-b border-[var(--line)] text-left text-[var(--muted)]"><th class="py-2">Route</th><th class="py-2 text-right">Avg</th><th class="py-2 text-right">Min</th><th class="py-2 text-right">Max</th><th class="py-2 text-right">N</th></tr></thead><tbody><template x-for="r in data.routeAnalysis"><tr class="border-b border-[var(--line)]"><td class="py-2 font-semibold" x-text="r.route_code"></td><td class="py-2 text-right" x-text="'₹'+Number(r.avg_fare).toLocaleString('en-IN')"></td><td class="py-2 text-right" x-text="'₹'+Number(r.min_fare).toLocaleString('en-IN')"></td><td class="py-2 text-right" x-text="'₹'+Number(r.max_fare).toLocaleString('en-IN')"></td><td class="py-2 text-right" x-text="Number(r.observations).toLocaleString()"></td></tr></template></tbody></table></div></div>
+<div class="card p-5"><h2 class="text-xl font-semibold">Airline fare profile</h2><p class="text-sm text-[var(--muted)] mt-1 mb-4">Average observed fare and sample size.</p><div class="overflow-auto max-h-96"><table class="min-w-full text-sm"><thead><tr class="border-b border-[var(--line)] text-left text-[var(--muted)]"><th class="py-2">Airline</th><th class="py-2 text-right">Avg fare</th><th class="py-2 text-right">Observations</th></tr></thead><tbody><template x-for="a in data.airlineAnalysis"><tr class="border-b border-[var(--line)]"><td class="py-2 font-semibold" x-text="a.iata_code+' · '+a.name"></td><td class="py-2 text-right" x-text="'₹'+Number(a.avg_fare).toLocaleString('en-IN')"></td><td class="py-2 text-right" x-text="Number(a.observations).toLocaleString()"></td></tr></template></tbody></table></div></div></section>
+<section class="card p-5"><h2 class="text-xl font-semibold">Booking-window effect</h2><p class="text-sm text-[var(--muted)] mt-1 mb-4">Average fare by days before departure. This is an observed pattern in the synthetic prototype, not a causal estimate.</p><div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"><template x-for="w in data.windowAnalysis"><div class="rounded-xl bg-[var(--brand-soft)] p-4"><div class="text-xs font-bold text-[var(--muted)]" x-text="w.label"></div><div class="text-2xl font-bold mt-2" x-text="'₹'+Number(w.avg_fare).toLocaleString('en-IN')"></div><div class="text-xs text-[var(--muted)] mt-1" x-text="Number(w.observations).toLocaleString()+' observations'"></div></div></template></div></section>
+</main></div>
+<script>
+function analysis(){return{data:{filters:{routes:[],airlines:[],windows:[]},routeAnalysis:[],airlineAnalysis:[],windowAnalysis:[]},filters:{route:'',airline:'',window:''},loading:true,error:'',async load(){await this.loadData()},async loadData(){this.loading=true;this.error='';try{const p=new URLSearchParams();if(this.filters.route)p.set('route',this.filters.route);if(this.filters.airline)p.set('airline',this.filters.airline);if(this.filters.window)p.set('window',this.filters.window);const r=await fetch('/api/analysis?'+p.toString());if(!r.ok)throw new Error('Analysis API returned '+r.status);this.data=await r.json();this.loading=false}catch(e){this.error=e.message;this.loading=false}},reset(){this.filters={route:'',airline:'',window:''};this.loadData()}}}
+</script></body></html>

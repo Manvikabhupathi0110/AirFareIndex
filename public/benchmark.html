@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Backtesting & DGCA Benchmarking | AirFare Intelligence</title>
+  <link rel="stylesheet" href="/theme.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen">
+  <header class="topbar mb-8">
+    <div class="topbar-inner">
+      <div class="brand">
+        <a href="/" class="brand-mark">A</a>
+        <div>
+          <div class="brand-kicker">Benchmark</div>
+          <h1 class="page-title">DGCA Reference</h1>
+        </div>
+      </div>
+      <div class="nav-shell">
+        <nav class="nav-row">
+          <a href="/" class="nav-link">Overview</a>
+          <a href="/analysis.html" class="nav-link">Analysis</a>
+          <a href="/quality.html" class="nav-link">Data Quality</a>
+          <a href="/statistics.html" class="nav-link">Statistics</a>
+          <a href="/benchmark.html" class="nav-link active">DGCA Benchmark</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" class="page-shell py-0 space-y-8">
+    <div class="grid md:grid-cols-4 gap-4" id="cards"></div>
+
+    <section class="card p-6">
+      <h2 class="text-lg font-semibold">Index reconstruction backtest</h2>
+      <p class="mt-2 text-sm text-[var(--muted)]">The traceability layer independently reconstructs each published index day by summing stored route × airline × booking-window contribution records.</p>
+      <div id="backtest" class="mt-5 grid md:grid-cols-4 gap-4"></div>
+      <div id="validation" class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(17,24,39,0.03); border:1px solid var(--border); color: var(--ink);"></div>
+    </section>
+
+    <section class="card p-6">
+      <h2 class="text-lg font-semibold">DGCA benchmark context</h2>
+      <p id="source" class="mt-2 text-[var(--muted)]"></p>
+      <div class="grid md:grid-cols-4 gap-3 mt-5" id="fields"></div>
+      <div class="mt-5 rounded-xl p-4 text-sm" style="background: rgba(17,24,39,0.03); border:1px solid var(--border); color: var(--ink);">DGCA is used as external aviation-activity context. The airfare observations in this prototype are synthetic; no official DGCA fare values are presented as observed fares.</div>
+    </section>
+  </main>
+
+  <script>
+    async function load() {
+      const r = await fetch('/api/benchmark');
+      if (!r.ok) throw new Error('Benchmark API returned ' + r.status);
+      const d = await r.json();
+      const b = d.backtest;
+
+      document.getElementById('cards').innerHTML = [
+        ['Trace Coverage', b.trace_coverage_pct + '%'],
+        ['Max Reconstruction Error', b.max_reconstruction_error],
+        ['Mean Reconstruction Error', b.mean_reconstruction_error],
+        ['Max Route Share', b.max_route_share_pct + '%']
+      ].map(x => '<div class="card p-5"><div class="smallcaps">' + x[0] + '</div><div class="text-3xl font-bold mt-2" style="color: var(--ink);">' + x[1] + '</div></div>').join('');
+
+      document.getElementById('backtest').innerHTML = [
+        ['Index days', b.index_days],
+        ['Traced days', b.traced_days],
+        ['Average route contribution share', b.avg_route_share_pct + '%'],
+        ['Coverage status', d.validation.coverage_status]
+      ].map(x => '<div class="card p-4"><div class="smallcaps">' + x[0] + '</div><div class="text-xl font-semibold mt-1">' + x[1] + '</div></div>').join('');
+
+      document.getElementById('validation').textContent = d.validation.method + '. ' + (d.validation.coverage_status === 'complete' ? 'Every published day has trace records.' : 'Some published days are not traced.');
+      document.getElementById('source').textContent = d.benchmark.reference_source + ' — ' + d.benchmark.benchmark_name;
+      document.getElementById('fields').innerHTML = d.dgca_context.fields.map(x => '<div class="card p-4 text-sm" style="background: rgba(17,24,39,0.02);">' + x + '</div>').join('');
+    }
+
+    load().catch(e => document.getElementById('app').insertAdjacentHTML('afterend', '<div class="page-shell pb-6"><div class="card p-4" style="border-color: rgba(31, 76, 200, 0.2); background: rgba(31, 76, 200, 0.04);">' + e.message + '</div></div>'));
+  </script>
+</body>
+</html>

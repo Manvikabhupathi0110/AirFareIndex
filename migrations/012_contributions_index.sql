@@ -1,0 +1,1 @@
+CREATE INDEX idx_contributions_index ON index_contributions(index_id)

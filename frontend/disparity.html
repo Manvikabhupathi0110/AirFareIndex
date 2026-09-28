@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fare Disparity | AirFare Intelligence</title>
+<link rel="stylesheet" href="/theme.css">
+<script src="https://cdn.tailwindcss.com"></script></head>
+<body class="min-h-screen">
+<header class="topbar mb-8 rounded-2xl px-4 py-4">
+  <div class="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-lg font-bold text-white shadow-lg">A</div>
+      <div>
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500">Comparative</div>
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900">Disparity Analysis</h1>
+      </div>
+    </div>
+    <div class="nav-shell">
+      <nav class="flex flex-wrap items-center gap-2">
+        <a href="/" class="nav-link px-3 py-2 rounded-lg text-sm">Overview</a>
+        <a href="/analysis.html" class="nav-link px-3 py-2 rounded-lg text-sm">Analysis</a>
+        <a href="/disparity.html" class="nav-link active px-3 py-2 rounded-lg text-sm">Disparity</a>
+        <a href="/quality.html" class="nav-link px-3 py-2 rounded-lg text-sm">Data Quality</a>
+        <a href="/statistics.html" class="nav-link px-3 py-2 rounded-lg text-sm">Statistics</a>
+        <a href="/benchmark.html" class="nav-link px-3 py-2 rounded-lg text-sm">DGCA Benchmark</a>
+      </nav>
+    </div>
+    <a href="/" class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm">← Dashboard</a>
+  </div>
+</header>
+<main class="max-w-7xl mx-auto px-6 py-8 space-y-7">
+<section class="card p-6 fade-in">
+<h2 class="text-lg font-semibold">Filter the analysis</h2>
+<div class="grid md:grid-cols-4 gap-3 mt-4">
+  <select id="routeFilter" class="bg-white border border-[var(--line)] rounded-lg px-3 py-2 text-sm"><option value="">All routes</option></select>
+  <select id="airlineFilter" class="bg-white border border-[var(--line)] rounded-lg px-3 py-2 text-sm"><option value="">All airlines</option></select>
+  <select id="windowFilter" class="bg-white border border-[var(--line)] rounded-lg px-3 py-2 text-sm"><option value="">All booking windows</option></select>
+  <button id="resetFilters" class="rounded-lg px-3 py-2 text-sm border border-[var(--line)] bg-white font-semibold">Reset filters</button>
+</div>
+<p class="text-[var(--muted)] text-xs mt-3">Filters are applied to the clean synthetic_v1 feed used by the analysis.</p>
+</section>
+<section class="grid md:grid-cols-3 gap-4" id="summary"></section>
+<section class="card p-6 fade-in">
+<h2 class="text-lg font-semibold">How to read disparity</h2>
+<p class="text-[var(--muted)] text-sm mt-2">Spread % measures the distance between the lowest and highest observed fare relative to the average fare for that dimension. It is a descriptive dispersion measure, not a fairness judgment.</p>
+</section>
+<section class="card p-6 fade-in">
+<h2 class="text-lg font-semibold">Route disparity</h2>
+<div class="overflow-x-auto mt-4"><table class="data-table w-full text-sm"><thead><tr><th class="text-left p-3">Route</th><th class="numeric p-3">Avg fare</th><th class="numeric p-3">Min</th><th class="numeric p-3">Max</th><th class="numeric p-3">Spread</th><th class="numeric p-3">Observations</th></tr></thead><tbody id="routes"></tbody></table></div>
+</section>
+<section class="card p-6 fade-in">
+<h2 class="text-lg font-semibold">Airline fare levels</h2>
+<div class="overflow-x-auto mt-4"><table class="data-table w-full text-sm"><thead><tr><th class="text-left p-3">Airline</th><th class="numeric p-3">Avg fare</th><th class="numeric p-3">Min</th><th class="numeric p-3">Max</th><th class="numeric p-3">Spread</th></tr></thead><tbody id="airlines"></tbody></table></div>
+</section>
+<section class="card p-6 fade-in">
+<h2 class="text-lg font-semibold">Booking-window effect</h2>
+<div class="grid md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4" id="windows"></div>
+</section>
+<section class="card p-6 mb-6" style="background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(238,244,248,0.9));">
+  <div class="mb-5">
+    <div class="smallcaps">Route × booking window</div>
+  </div>
+  <h2 class="text-3xl md:text-4xl font-light text-slate-800 mb-6">Average fare heatmap</h2>
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[860px] border-separate border-spacing-0 rounded-2xl overflow-hidden">
+      <thead id="heatHead"></thead>
+      <tbody id="heatBody"></tbody>
+    </table>
+  </div>
+</section>
+</main>
+<script>
+const API=(window.__HATCHABLE__?.api||"/api");
+const windows=["61_90","31_60","16_30","8_15","4_7","0_3"];
+const money=x=>"₹"+Number(x||0).toLocaleString("en-IN",{maximumFractionDigits:0});
+function row(cells){return "<tr>"+cells.map((x,i)=>"<td class='p-3 "+(i?"text-right":"")+"'>"+x+"</td>").join("")+"</tr>";}
+async function load(){
+ const params=new URLSearchParams();
+ const route=document.getElementById("routeFilter").value;
+ const airline=document.getElementById("airlineFilter").value;
+ const win=document.getElementById("windowFilter").value;
+ if(route) params.set("route",route);
+ if(airline) params.set("airline",airline);
+ if(win) params.set("window",win);
+ const qs=params.toString();
+ const r=await fetch(API+"/disparity"+(qs?"?"+qs:"")); 
+ if(!r.ok) throw new Error("Disparity API returned "+r.status);
+ const d=await r.json();
+ const o=d.overall;
+ document.getElementById("routeFilter").innerHTML="<option value=''>All routes</option>"+d.routeAnalysis.map(x=>"<option value='"+x.route_code+"'>"+x.route_code+"</option>").join("");
+ document.getElementById("airlineFilter").innerHTML="<option value=''>All airlines</option>"+d.airlineAnalysis.map(x=>"<option value='"+x.iata_code+"'>"+x.iata_code+" — "+x.name+"</option>").join("");
+ document.getElementById("windowFilter").innerHTML="<option value=''>All booking windows</option>"+d.windowAnalysis.map(x=>"<option value='"+x.code+"'>"+x.label+"</option>").join("");
+ document.getElementById("routeFilter").value=route;
+ document.getElementById("airlineFilter").value=airline;
+ document.getElementById("windowFilter").value=win;
+ document.getElementById("summary").innerHTML=[
+  ["Clean observations",o.observations.toLocaleString("en-IN")],
+  ["Overall fare range",money(o.min_fare)+" – "+money(o.max_fare)],
+  ["Overall average",money(o.avg_fare)]
+ ].map(x=>"<div class='card p-5 card--hero'><div class='smallcaps'>"+x[0]+"</div><div class='text-2xl font-bold mt-2'>"+x[1]+"</div></div>").join("");
+ document.getElementById("routes").innerHTML=d.routeAnalysis.map(x=>row([x.route_code,money(x.avg_fare),money(x.min_fare),money(x.max_fare),x.spread_pct+"%",x.observations.toLocaleString("en-IN")])).join("");
+ document.getElementById("airlines").innerHTML=d.airlineAnalysis.map(x=>row([x.iata_code+" — "+x.name,money(x.avg_fare),money(x.min_fare),money(x.max_fare),x.spread_pct+"%"])).join("");
+ document.getElementById("windows").innerHTML=d.windowAnalysis.map(x=>"<div class='card p-4'><div class='font-semibold'>"+x.label+"</div><div class='text-xl font-bold mt-2'>"+money(x.avg_fare)+"</div><div class='text-xs mt-1' style='color: var(--muted);'>Spread "+x.spread_pct+"%</div></div>").join("");
+ const map={}; d.heatmap.forEach(x=>{map[x.route_code+"|"+x.booking_window]=Number(x.avg_fare)||0;});
+ const routeCodes=[...new Set(d.heatmap.map(x=>x.route_code))].slice(0,5);
+ const windowMeta=[
+   { code:"0_3", label:"0-3" },
+   { code:"4_7", label:"4-7" },
+   { code:"8_15", label:"8-15" },
+   { code:"16_30", label:"16-30" },
+   { code:"31_60", label:"31-60" },
+   { code:"61_90", label:"61-90" }
+ ];
+ const values = routeCodes.flatMap(rt => windowMeta.map(w => map[rt + "|" + w.code] || 0));
+ const min = Math.min(...values, 0);
+ const max = Math.max(...values, 1);
+ const heatColor = value => {
+   const t = max === min ? 0.5 : (value - min) / (max - min);
+   const hue = 170 + (t * 18);
+   const saturation = 30 + (t * 8);
+   const lightness = 92 - (t * 42);
+   return `hsl(${hue} ${saturation}% ${lightness}%)`;
+ };
+ const cellText = value => value > 0.7 ? "#ecfeff" : "#0f172a";
+ document.getElementById("heatHead").innerHTML = "<tr><th class='text-left p-0 pb-3 pr-3 align-bottom'></th>" + windowMeta.map(w => "<th class='pb-3 px-2 text-center text-xs font-medium' style='min-width:140px; color: var(--muted);'>" + w.label + "</th>").join("") + "</tr>";
+ document.getElementById("heatBody").innerHTML = routeCodes.map(rt => {
+   const rowCells = windowMeta.map(w => {
+     const value = map[rt + "|" + w.code] || 0;
+     const t = max === min ? 0.5 : (value - min) / (max - min);
+     const fill = heatColor(value);
+     const fg = cellText(t);
+     return "<td class='px-2 py-2 align-middle'><div class='rounded-xl border px-3 py-4 text-center font-semibold shadow-sm' style='background:" + fill + "; color:" + fg + "; border-color: rgba(17,24,39,0.08); min-height: 72px; display:flex; align-items:center; justify-content:center; font-size:1.02rem; letter-spacing:-0.01em;'>₹" + Number(value).toLocaleString('en-IN', { maximumFractionDigits: 0 }) + "</div></td>";
+   }).join("");
+   return "<tr><td class='pr-4 py-2 text-left font-semibold whitespace-nowrap' style='min-width:120px; color: var(--ink);'>" + rt + "</td>" + rowCells + "</tr>";
+ }).join("");
+ }
+document.getElementById("routeFilter").addEventListener("change",load);
+document.getElementById("airlineFilter").addEventListener("change",load);
+document.getElementById("windowFilter").addEventListener("change",load);
+document.getElementById("resetFilters").addEventListener("click",()=>{document.getElementById("routeFilter").value="";document.getElementById("airlineFilter").value="";document.getElementById("windowFilter").value="";load();});
+load().catch(e=>document.body.insertAdjacentHTML("beforeend","<div class='fixed bottom-4 right-4 card p-4' style='background: rgba(31, 76, 200, 0.04); border-color: rgba(31, 76, 200, 0.12);'>Unable to load disparity data.</div>"));
+</script></body></html>

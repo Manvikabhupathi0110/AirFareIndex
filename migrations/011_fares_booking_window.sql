@@ -1,0 +1,1 @@
+CREATE INDEX idx_fares_booking_window ON fare_observations(booking_window_id, observed_at)

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AirFare Intelligence Platform</title>
+  <link rel="stylesheet" href="/theme.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body class="font-sans antialiased">
+<div class="max-w-7xl mx-auto px-5 py-8" x-data="dashboard()" x-init="load()">
+  <header class="topbar mb-8 rounded-2xl px-4 py-4">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-600 via-sky-500 to-teal-500 flex items-center justify-center text-lg font-bold text-white shadow-lg">A</div>
+        <div>
+          <div class="text-[10px] uppercase tracking-[0.18em] font-black text-slate-600">AirFareIndex</div>
+          <h1 class="text-xl md:text-2xl font-black text-slate-900">Dashboard</h1>
+        </div>
+      </div>
+
+      <div class="nav-shell">
+        <nav class="flex flex-wrap items-center gap-2">
+          <a href="/" class="nav-link active px-3 py-2 rounded-lg text-sm">Overview</a>
+          <a href="/analysis.html" target="_blank" rel="noopener" class="nav-link px-3 py-2 rounded-lg text-sm">Analysis</a>
+          <a href="/disparity.html" target="_blank" rel="noopener" class="nav-link px-3 py-2 rounded-lg text-sm">Disparity</a>
+          <a href="/quality.html" target="_blank" rel="noopener" class="nav-link px-3 py-2 rounded-lg text-sm">Data Quality</a>
+          <a href="/statistics.html" target="_blank" rel="noopener" class="nav-link px-3 py-2 rounded-lg text-sm">Statistics</a>
+          <a href="/benchmark.html" target="_blank" rel="noopener" class="nav-link px-3 py-2 rounded-lg text-sm">DGCA Benchmark</a>
+          <a href="/api.html" target="_blank" rel="noopener" class="nav-link px-3 py-2 rounded-lg text-sm">Public API</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 shadow-sm">
+        <label class="text-slate-500">Trace date</label>
+        <input type="date" x-model="date" @change="loadSelected()" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-slate-800">
+      </div>
+    </div>
+  </header>
+
+  <section class="card panel-glow card--hero p-5 mb-6 fade-in">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+      <div>
+        <div class="smallcaps">Flight Search</div>
+      </div>
+    </div>
+    <form @submit.prevent="submitFlightSearch()" class="grid grid-cols-1 md:grid-cols-6 gap-3">
+      <div>
+        <label class="text-xs text-[var(--muted)] block mb-1">Origin</label>
+        <input x-model="flightSearch.origin" class="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2" placeholder="HYD">
+      </div>
+      <div>
+        <label class="text-xs text-[var(--muted)] block mb-1">Destination</label>
+        <input x-model="flightSearch.destination" class="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2" placeholder="DEL">
+      </div>
+      <div>
+        <label class="text-xs text-[var(--muted)] block mb-1">Outbound</label>
+        <input type="date" x-model="flightSearch.outbound_date" class="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2">
+      </div>
+      <div>
+        <label class="text-xs text-[var(--muted)] block mb-1">Return</label>
+        <input type="date" x-model="flightSearch.return_date" class="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2">
+      </div>
+      <div>
+        <label class="text-xs text-[var(--muted)] block mb-1">Class</label>
+        <select x-model="flightSearch.travel_class" class="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2">
+          <option value="economy">Economy</option>
+          <option value="business">Business</option>
+          <option value="premium_economy">Premium Economy</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="w-full rounded-lg bg-slate-900 text-white px-4 py-2 font-semibold" x-bind:disabled="flightSearch.loading">
+          <span x-show="!flightSearch.loading">Search</span>
+          <span x-show="flightSearch.loading">Loading…</span>
+        </button>
+      </div>
+    </form>
+
+    <template x-if="flightSearch.error">
+      <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" x-text="flightSearch.error"></div>
+    </template>
+
+    <template x-if="flightSearch.results.length">
+      <div class="mt-5 overflow-x-auto rounded-xl border border-[var(--line)]">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-left text-[var(--muted)]">
+            <tr>
+              <th class="py-2 px-3">Airline</th>
+              <th class="py-2 px-3">Flight</th>
+              <th class="py-2 px-3">Departure</th>
+              <th class="py-2 px-3">Arrival</th>
+              <th class="py-2 px-3">Duration</th>
+              <th class="py-2 px-3">Stops</th>
+              <th class="py-2 px-3 text-right">Price</th>
+              <th class="py-2 px-3">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="flight in flightSearch.results" :key="flight.flight_number + flight.departure_time + flight.price">
+              <tr class="border-t border-[var(--line)]">
+                <td class="py-2 px-3" x-text="flight.airline || '—'"></td>
+                <td class="py-2 px-3 font-semibold" x-text="flight.flight_number || '—'"></td>
+                <td class="py-2 px-3" x-text="flight.departure_time ? new Date(flight.departure_time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'"></td>
+                <td class="py-2 px-3" x-text="flight.arrival_time ? new Date(flight.arrival_time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'"></td>
+                <td class="py-2 px-3" x-text="flight.duration || '—'"></td>
+                <td class="py-2 px-3" x-text="flight.stops ?? '—'"></td>
+                <td class="py-2 px-3 text-right font-semibold" x-text="flight.price ? ('₹' + Number(flight.price).toLocaleString('en-IN',{minimumFractionDigits:2})) : '—'"></td>
+                <td class="py-2 px-3 text-xs text-[var(--muted)]" x-text="flight.source || '—'"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+    <template x-if="!flightSearch.loading && !flightSearch.results.length && !flightSearch.error && flightSearch.searched">
+      <div class="mt-4 rounded-lg border border-[var(--line)] bg-[var(--brand-soft)] p-3 text-sm text-[var(--muted)]">No flights matched the selected route and dates.</div>
+    </template>
+  </section>
+
+  <template x-if="loading"><div class="card p-8 text-center text-[var(--muted)]">Loading dashboard…</div></template>
+  <template x-if="error"><div class="card p-5 text-red-700" x-text="error"></div></template>
+
+  <main x-show="!loading && !error" x-cloak>
+
+    <section class="card p-5 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div><h2 class="text-xl font-semibold">National Airfare Index</h2><p class="text-sm text-[var(--muted)]">Base period = 100</p></div>
+        <div class="text-sm text-[var(--muted)]">Hover any point for the exact index and day-level metadata</div>
+      </div>
+      <div class="h-72"><canvas id="trendChart"></canvas></div>
+      <div class="mt-4 rounded-xl border border-[var(--line)] bg-[var(--brand-soft)] p-4">
+        <div class="smallcaps">Hovered / selected day</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+          <div><div class="text-xs text-[var(--muted)]">Date</div><div class="font-semibold" x-text="hoveredDay.date || data.index.index_date"></div></div>
+          <div><div class="text-xs text-[var(--muted)]">Exact index</div><div class="font-semibold" x-text="hoveredDay.index ? Number(hoveredDay.index).toFixed(4) : Number(data.index.index_value).toFixed(4)"></div></div>
+          <div><div class="text-xs text-[var(--muted)]">Observations</div><div class="font-semibold" x-text="hoveredDay.observations ? Number(hoveredDay.observations).toLocaleString() : Number(data.index.observation_count).toLocaleString()"></div></div>
+          <div><div class="text-xs text-[var(--muted)]">Routes</div><div class="font-semibold" x-text="hoveredDay.routes || data.index.route_count"></div></div>
+        </div>
+      </div>
+      <div class="mt-4">
+        <div class="smallcaps mb-2">Fare observations for selected day</div>
+        <div class="overflow-x-auto max-h-80 rounded-xl border border-[var(--line)]">
+          <table class="min-w-full text-sm">
+            <thead class="sticky top-0 bg-white"><tr class="border-b border-[var(--line)] text-left text-[var(--muted)]">
+              <th class="py-2 px-3">Route</th><th class="py-2 px-3">Airline</th><th class="py-2 px-3">Booking window</th><th class="py-2 px-3">Departure</th><th class="py-2 px-3">Days before</th><th class="py-2 px-3 text-right">Fare</th>
+            </tr></thead>
+            <tbody>
+              <template x-for="row in dayDetails.slice(0,60)" :key="row.route_code+row.airline_code+row.booking_window+row.departure_date">
+                <tr class="border-b border-[var(--line)]">
+                  <td class="py-2 px-3 font-semibold" x-text="row.route_code"></td>
+                  <td class="py-2 px-3" x-text="row.airline_code + ' · ' + row.airline_name"></td>
+                  <td class="py-2 px-3" x-text="row.booking_window"></td>
+                  <td class="py-2 px-3" x-text="row.departure_date"></td>
+                  <td class="py-2 px-3" x-text="row.days_before_departure"></td>
+                  <td class="py-2 px-3 text-right font-semibold" x-text="'₹' + Number(row.fare_inr).toLocaleString('en-IN',{minimumFractionDigits:2})"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div class="text-xs text-[var(--muted)] mt-2" x-text="dayDetails.length ? ('Showing '+Math.min(dayDetails.length,60)+' of '+dayDetails.length+' clean fare observations for '+(hoveredDay.date || data.index.index_date)+'.') : 'Select a date to load its fare observations.'"></div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div class="card p-5 fade-in fade-in"><h2 class="text-lg font-semibold mb-1">Route contribution</h2><p class="text-sm text-[var(--muted)] mb-4">Index points and share of the selected index</p><div class="h-72"><canvas id="routeChart"></canvas></div></div>
+      <div class="card p-5 fade-in"><h2 class="text-lg font-semibold mb-1">Airline contribution</h2><p class="text-sm text-[var(--muted)] mb-4">Contribution by airline</p><div class="h-72"><canvas id="airlineChart"></canvas></div></div>
+      <div class="card p-5 fade-in"><h2 class="text-lg font-semibold mb-1">Booking window</h2><p class="text-sm text-[var(--muted)] mb-4">Contribution by booking lead time</p><div class="h-72"><canvas id="windowChart"></canvas></div></div>
+    </section>
+
+    <section class="card p-5 fade-in">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+        <div><h2 class="text-xl font-semibold">Why did the index change?</h2><p class="text-sm text-[var(--muted)]">A transparent path from the national index to the fare observations that contributed to it.</p></div>
+        <div class="px-3 py-2 rounded-lg bg-[var(--brand-soft)] text-sm font-semibold">Trace sum: <span x-text="data.contribution_sum?.toFixed(4)"></span> · gap: <span x-text="data.contribution_gap?.toFixed(4)"></span></div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
+        <div class="p-4 rounded-xl border border-[var(--line)]"><div class="smallcaps">Selected index</div><div class="text-xl font-bold mt-1" x-text="Number(data.index.index_value).toFixed(4)"></div></div>
+        <div class="p-4 rounded-xl border border-[var(--line)]"><div class="smallcaps">Daily change</div><div class="text-xl font-bold mt-1" x-text="data.previous_index ? ((data.index_change>=0?'+':'')+Number(data.index_change).toFixed(4)) : '—'"></div><div class="text-xs text-[var(--muted)]" x-text="data.previous_index ? 'vs '+data.previous_index.index_date : 'first index day'"></div></div>
+        <div class="p-4 rounded-xl border border-[var(--line)]"><div class="smallcaps">Trace records</div><div class="text-xl font-bold mt-1" x-text="data.trace_count"></div><div class="text-xs text-[var(--muted)]">route × airline × window</div></div>
+        <div class="p-4 rounded-xl border border-[var(--line)]"><div class="smallcaps">Top route</div><div class="text-xl font-bold mt-1" x-text="data.routeSummary?.[0]?.route_code || '—'"></div><div class="text-xs text-[var(--muted)]" x-text="data.routeSummary?.[0] ? Number(data.routeSummary[0].contribution).toFixed(2)+' index points' : ''"></div></div>
+      </div>
+      <div class="mb-5 p-4 rounded-xl bg-[var(--brand-soft)] border border-[var(--line)]">
+        <div class="font-semibold">Traceability chain</div>
+        <div class="text-sm text-[var(--muted)] mt-2">National Index <span class="mx-1">→</span> Route <span class="mx-1">→</span> Airline <span class="mx-1">→</span> Booking Window <span class="mx-1">→</span> Fare Observation</div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="overflow-x-auto rounded-xl border border-[var(--line)]">
+          <div class="px-4 py-3 border-b border-[var(--line)] font-semibold">Top route contributions</div>
+          <table class="data-table min-w-full text-sm"><thead><tr><th class="py-3 px-3">Route</th><th class="py-3 px-3 numeric">Points</th><th class="py-3 px-3 numeric">Share</th></tr></thead>
+          <tbody><template x-for="row in data.routeSummary" :key="row.route_code"><tr><td class="py-3 px-3 font-semibold" x-text="row.route_code"></td><td class="py-3 px-3 numeric" x-text="Number(row.contribution).toFixed(4)"></td><td class="py-3 px-3 numeric" x-text="Number(row.contribution_share_pct).toFixed(2)+'%'"></td></tr></template></tbody></table>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-[var(--line)]">
+          <div class="px-4 py-3 border-b border-[var(--line)] font-semibold">Top contribution records</div>
+          <table class="data-table min-w-full text-sm"><thead><tr><th class="py-3 px-3">Route</th><th class="py-3 px-3">Airline</th><th class="py-3 px-3">Window</th><th class="py-3 px-3 numeric">Fare</th><th class="py-3 px-3 numeric">Points</th></tr></thead>
+          <tbody><template x-for="row in data.contributions.slice(0,20)" :key="row.route_id + row.airline_id + row.booking_window_id"><tr><td class="py-3 px-3 font-semibold" x-text="row.route_code"></td><td class="py-3 px-3" x-text="row.airline_code"></td><td class="py-3 px-3" x-text="row.booking_window_label"></td><td class="py-3 px-3 numeric" x-text="'₹'+Number(row.average_fare).toLocaleString('en-IN',{maximumFractionDigits:0})"></td><td class="py-3 px-3 numeric font-semibold" x-text="Number(row.contribution_value).toFixed(4)"></td></tr></template></tbody></table>
+        </div>
+      </div>
+      <div class="mt-5 text-xs text-[var(--muted)]">Contribution points are calculated from normalized fare level, observation count and route weight, then scaled to the published index. All trace records should reconstruct the selected index exactly.</div>
+    </section>
+  </main>
+</div>
+
+<script>
+function dashboard() {
+  return {
+    data: {index:{},trend:[],contributions:[],routeSummary:[],airlineSummary:[],windowSummary:[]},
+    dayDetails: [],
+    dayDetailsDate: '',
+    date: '',
+    hoveredDay: {},
+    loading: true,
+    error: '',
+    charts: {},
+    flightSearch: {
+      origin: 'HYD',
+      destination: 'DEL',
+      outbound_date: '',
+      return_date: '',
+      travel_class: 'economy',
+      loading: false,
+      error: '',
+      results: [],
+      searched: false
+    },
+    async load() {
+      try {
+        const r = await fetch('/api/dashboard');
+        if (!r.ok) throw new Error('Dashboard API returned ' + r.status);
+        this.data = await r.json();
+        this.date = this.data.index.index_date;
+        this.hoveredDay = {date:this.data.index.index_date,index:this.data.index.index_value,observations:this.data.index.observation_count,routes:this.data.index.route_count};
+        await this.loadDayDetails(this.date);
+        this.loading = false;
+        this.$nextTick(() => this.drawCharts());
+      } catch (e) { this.error = e.message; this.loading = false; }
+    },
+    async loadSelected() {
+      this.loading = true; this.error = '';
+      try {
+        const r = await fetch('/api/dashboard?date=' + encodeURIComponent(this.date));
+        if (!r.ok) throw new Error('No index data for that date.');
+        this.data = await r.json();
+        this.hoveredDay = {date:this.data.index.index_date,index:this.data.index.index_value,observations:this.data.index.observation_count,routes:this.data.index.route_count};
+        await this.loadDayDetails(this.date);
+        this.loading = false;
+        this.$nextTick(() => this.drawCharts());
+      } catch (e) { this.error = e.message; this.loading = false; }
+    },
+    async loadDayDetails(date) {
+      try {
+        const r = await fetch('/api/day-details?date=' + encodeURIComponent(date));
+        if (!r.ok) throw new Error('Day details unavailable');
+        const d = await r.json();
+        this.dayDetails = d.rows || [];
+      } catch (e) {
+        this.dayDetails = [];
+      }
+    },
+    contributionTotal() {
+      return this.data.contributions.reduce((s, x) => s + Number(x.contribution_value), 0);
+    },
+    async submitFlightSearch() {
+      this.flightSearch.loading = true;
+      this.flightSearch.error = '';
+      this.flightSearch.results = [];
+      this.flightSearch.searched = true;
+      try {
+        const params = new URLSearchParams({
+          origin: this.flightSearch.origin,
+          destination: this.flightSearch.destination,
+          outbound_date: this.flightSearch.outbound_date,
+          trip_type: this.flightSearch.return_date ? 'round_trip' : 'one_way',
+          travel_class: this.flightSearch.travel_class
+        });
+        if (this.flightSearch.return_date) params.set('return_date', this.flightSearch.return_date);
+        const r = await fetch('/api/flights/search?' + params.toString());
+        const body = await r.json();
+        if (!r.ok) throw new Error(body.error || 'Unable to load flight search results.');
+        this.flightSearch.results = Array.isArray(body.flights) ? body.flights : [];
+      } catch (e) {
+        this.flightSearch.error = e.message || 'Request failed.';
+      } finally {
+        this.flightSearch.loading = false;
+      }
+    },
+    drawCharts() {
+      Object.values(this.charts).forEach(c => c && c.destroy());
+      const common = {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}};
+      this.charts.trend = new Chart(document.getElementById('trendChart'), {
+        type:'line',
+        data:{labels:this.data.trend.map(x=>x.index_date),datasets:[{label:'Airfare Index',data:this.data.trend.map(x=>x.index_value),tension:.25,borderWidth:2,pointRadius:2,pointHoverRadius:6}]},
+        options:{...common,
+          interaction:{mode:'index',intersect:false},
+          plugins:{legend:{display:false},tooltip:{displayColors:false,callbacks:{
+            title:(items)=>'Index date: '+items[0].label,
+            label:(ctx)=>'Exact index: '+Number(ctx.parsed.y).toFixed(4),
+            afterLabel:(ctx)=>{const d=this.data.trend[ctx.dataIndex]; return ['Observations: '+Number(d.observation_count).toLocaleString(),'Routes represented: '+d.route_count,'Click date selector to load full traceability breakdown.'];}
+          }}},
+          onHover:(event,active)=>{if(active.length){const d=this.data.trend[active[0].index];this.hoveredDay={date:d.index_date,index:d.index_value,observations:d.observation_count,routes:d.route_count};if(this.dayDetailsDate!==d.index_date){this.dayDetailsDate=d.index_date;this.loadDayDetails(d.index_date);}}},
+          scales:{x:{ticks:{maxTicksLimit:12}},y:{beginAtZero:false}}
+        }
+      });
+      this.charts.route = new Chart(document.getElementById('routeChart'), {
+        type:'bar', data:{labels:this.data.routeSummary.map(x=>x.route_code),datasets:[{data:this.data.routeSummary.map(x=>x.contribution),borderWidth:1}]},
+        options:{...common,indexAxis:'y',scales:{x:{beginAtZero:true}}}
+      });
+      this.charts.airline = new Chart(document.getElementById('airlineChart'), {
+        type:'doughnut', data:{labels:this.data.airlineSummary.map(x=>x.iata_code),datasets:[{data:this.data.airlineSummary.map(x=>x.contribution),borderWidth:1}]},
+        options:{responsive:true,maintainAspectRatio:false}
+      });
+      this.charts.window = new Chart(document.getElementById('windowChart'), {
+        type:'bar', data:{labels:this.data.windowSummary.map(x=>x.label),datasets:[{data:this.data.windowSummary.map(x=>x.contribution),borderWidth:1}]},
+        options:{...common,scales:{x:{ticks:{maxRotation:45,minRotation:20}},y:{beginAtZero:true}}}
+      });
+      this.renderHeatmap();
+    },
+    renderHeatmap() {
+      const rows = Array.isArray(this.data.routeSummary) ? this.data.routeSummary.slice(0, 12) : [];
+      if (!rows.length) {
+        document.getElementById('routeHeatmap').innerHTML = '';
+        return;
+      }
+
+      const routePins = [
+        {x: 175, y: 145},
+        {x: 210, y: 170},
+        {x: 230, y: 200},
+        {x: 255, y: 232},
+        {x: 200, y: 250},
+        {x: 245, y: 292},
+        {x: 165, y: 250},
+        {x: 210, y: 305},
+        {x: 275, y: 180},
+        {x: 305, y: 260},
+        {x: 220, y: 340},
+        {x: 287, y: 120}
+      ];
+
+      const max = Math.max(...rows.map(row => Number(row.contribution_share_pct) || 0), 1);
+      const ringPaths = [
+        'M 100 90 C 125 40, 200 20, 280 42 C 300 122, 295 165, 270 230 C 250 295, 220 338, 180 372 C 150 385, 120 383, 90 357 C 68 330, 65 282, 70 220 C 73 180, 80 122, 100 90 Z',
+        'M 120 120 C 158 75, 220 68, 260 90 C 292 110, 298 165, 274 220 C 252 275, 214 312, 160 338 C 130 350, 100 346, 84 319 C 72 295, 74 250, 92 210 C 108 168, 108 145, 120 120 Z',
+        'M 134 144 C 158 120, 203 118, 230 130 C 244 138, 258 170, 255 200 C 251 232, 228 260, 200 278 C 175 292, 148 292, 126 270 C 110 252, 107 214, 120 184 C 124 170, 129 154, 134 144 Z'
+      ];
+
+      const svg = `
+        <svg viewBox="0 0 420 460" class="w-full h-[320px] rounded-2xl bg-[#edf4f8]" aria-label="India airfare route heatmap">
+          <g transform="translate(10 10)">
+            <path d="M158 54 L184 27 L232 40 L270 24 L311 42 L343 70 L360 110 L349 151 L373 180 L359 214 L335 244 L350 282 L339 314 L309 344 L279 358 L247 381 L227 420 L180 418 L147 373 L112 357 L81 323 L65 287 L73 253 L92 225 L108 196 L96 160 L112 124 L126 92 L142 70 Z" fill="#1ca4d8" stroke="#1a2f3d" stroke-width="2.4"/>
+            <path d="M120 106 L145 82 L188 80 L209 73 L242 82 L271 98 L284 123 L275 148 L286 164 L280 189 L257 196 L245 209 L220 206 L194 221 L167 214 L143 230 L121 214 L108 188 L108 164 L120 143 L114 122 Z" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.18)" stroke-width="1.4"/>
+            ${ringPaths.map(path => `<path d="${path}" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-dasharray="5 8" opacity="0.75" />`).join('')}
+            ${rows.slice(0, 12).map((row, index) => {
+              const share = Number(row.contribution_share_pct) || 0;
+              const point = routePins[index % routePins.length];
+              const radius = 10 + (share / max) * 16;
+              const x = point.x;
+              const y = point.y;
+              const wobble = (index % 2 === 0 ? 1 : -1) * 8;
+              const planeAngle = -30 + index * 16;
+              return `
+                <g>
+                  <circle cx="${x}" cy="${y}" r="${radius + 8}" fill="rgba(239,68,68,0.18)"/>
+                  <circle cx="${x}" cy="${y}" r="${radius}" fill="#ef4444" stroke="rgba(255,255,255,0.9)" stroke-width="2"/>
+                  <g transform="translate(${x + wobble} ${y - 2}) rotate(${planeAngle})">
+                    <path d="M -12 0 L -4 -7 L 5 0 L -4 7 Z" fill="white"/>
+                    <path d="M -2 0 L 16 0 L 12 5 L 0 5 Z" fill="white"/>
+                    <path d="M -2 0 L 16 0 L 12 -5 L 0 -5 Z" fill="white" opacity="0.9"/>
+                  </g>
+                </g>
+              `;
+            }).join('')}
+          </g>
+        </svg>
+      `;
+
+      document.getElementById('routeHeatmap').innerHTML = svg;
+    }
+  }
+}
+</script>
+</body>
+</html>

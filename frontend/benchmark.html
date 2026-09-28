@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Backtesting & DGCA Benchmarking | AirFare Intelligence</title>
+  <link rel="stylesheet" href="/theme.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen">
+  <header class="topbar mb-8 px-4 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <a href="/" class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 via-sky-500 to-teal-500 text-lg font-bold text-white shadow-lg">A</a>
+        <div>
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500">Benchmark</div>
+          <h1 class="text-xl font-bold text-slate-900">DGCA Reference</h1>
+        </div>
+      </div>
+      <div class="nav-shell">
+        <nav class="flex flex-wrap items-center gap-2">
+          <a href="/" class="nav-link px-3 py-2 rounded-lg text-sm">Overview</a>
+          <a href="/analysis.html" class="nav-link px-3 py-2 rounded-lg text-sm">Analysis</a>
+          <a href="/quality.html" class="nav-link px-3 py-2 rounded-lg text-sm">Data Quality</a>
+          <a href="/statistics.html" class="nav-link px-3 py-2 rounded-lg text-sm">Statistics</a>
+          <a href="/benchmark.html" class="nav-link active px-3 py-2 rounded-lg text-sm">DGCA Benchmark</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" class="max-w-7xl mx-auto px-6 py-4 space-y-8">
+    <div class="grid md:grid-cols-4 gap-4" id="cards"></div>
+
+    <section class="card benchmark-card rounded-2xl p-6 fade-in">
+      <h2 class="text-lg font-semibold">Index reconstruction backtest</h2>
+      <p class="mt-2 text-sm text-[var(--muted)]">The traceability layer independently reconstructs each published index day by summing stored route × airline × booking-window contribution records.</p>
+      <div id="backtest" class="mt-5 grid md:grid-cols-4 gap-4"></div>
+      <div id="validation" class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(17,24,39,0.02); border:1px solid var(--line); color: var(--ink);"></div>
+    </section>
+
+    <section class="card benchmark-card rounded-2xl p-6 fade-in">
+      <h2 class="text-lg font-semibold">DGCA benchmark context</h2>
+      <p id="source" class="mt-2 text-[var(--muted)]"></p>
+      <div class="grid md:grid-cols-4 gap-3 mt-5" id="fields"></div>
+      <div class="mt-5 rounded-xl p-4 text-sm" style="background: rgba(17,24,39,0.02); border:1px solid var(--line); color: var(--ink);">DGCA is used as external aviation-activity context. The airfare observations in this prototype are synthetic; no official DGCA fare values are presented as observed fares.</div>
+    </section>
+  </main>
+
+  <script>
+    async function load() {
+      const r = await fetch('/api/benchmark');
+      if (!r.ok) throw new Error('Benchmark API returned ' + r.status);
+      const d = await r.json();
+      const b = d.backtest;
+
+      document.getElementById('cards').innerHTML = [
+        ['Trace Coverage', b.trace_coverage_pct + '%'],
+        ['Max Reconstruction Error', b.max_reconstruction_error],
+        ['Mean Reconstruction Error', b.mean_reconstruction_error],
+        ['Max Route Share', b.max_route_share_pct + '%']
+      ].map(x => '<div class="card p-5"><div class="smallcaps">' + x[0] + '</div><div class="text-3xl font-bold mt-2">' + x[1] + '</div></div>').join('');
+
+      document.getElementById('backtest').innerHTML = [
+        ['Index days', b.index_days],
+        ['Traced days', b.traced_days],
+        ['Average route contribution share', b.avg_route_share_pct + '%'],
+        ['Coverage status', d.validation.coverage_status]
+      ].map(x => '<div class="card p-4"><div class="smallcaps">' + x[0] + '</div><div class="text-xl font-semibold mt-1">' + x[1] + '</div></div>').join('');
+
+      document.getElementById('validation').textContent = d.validation.method + '. ' + (d.validation.coverage_status === 'complete' ? 'Every published day has trace records.' : 'Some published days are not traced.');
+      document.getElementById('source').textContent = d.benchmark.reference_source + ' — ' + d.benchmark.benchmark_name;
+      document.getElementById('fields').innerHTML = d.dgca_context.fields.map(x => '<div class="card p-4 text-sm" style="background: rgba(17,24,39,0.02);">' + x + '</div>').join('');
+    }
+
+    load().catch(e => document.getElementById('app').insertAdjacentHTML('afterend', '<div class="max-w-7xl mx-auto px-6 pb-6"><div class="card p-4" style="background: rgba(52, 97, 255, 0.04); border-color: rgba(52, 97, 255, 0.12);">' + e.message + '</div></div>'));
+  </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Public Data API | AirFareIndex Intelligence System</title>
+<link rel="stylesheet" href="/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen" style="background: linear-gradient(180deg, #f7f8ff 0%, #f3f8ff 40%, #f7f9fc 100%); color: var(--ink);">
+<header class="topbar mb-8">
+<div class="topbar-inner">
+<div class="brand">
+<a href="/" class="brand-mark">A</a>
+<div>
+<div class="brand-kicker">API</div>
+<h1 class="page-title">Public Data API</h1>
+</div>
+</div>
+<div class="nav-shell">
+<nav class="nav-row">
+<a href="/" class="nav-link">Overview</a>
+<a href="/analysis.html" class="nav-link">Analysis</a>
+<a href="/disparity.html" class="nav-link">Disparity</a>
+<a href="/quality.html" class="nav-link">Data Quality</a>
+<a href="/statistics.html" class="nav-link">Statistics</a>
+<a href="/benchmark.html" class="nav-link">DGCA Benchmark</a>
+</nav>
+</div>
+<a href="/" class="button-primary">← Dashboard</a>
+</div>
+</header>
+<main class="page-shell py-0 space-y-7">
+<section class="card p-6" style="background: linear-gradient(135deg, rgba(227,244,255,0.9), rgba(255,255,255,0.96));">
+<h2 class="section-title">How another system consumes the API</h2>
+<div class="mt-4 grid md:grid-cols-3 gap-3 text-sm">
+<div class="card p-4" style="background: linear-gradient(135deg, rgba(227,244,255,0.9), rgba(255,255,255,0.96));"><div class="smallcaps">1</div><div class="font-semibold mt-1">Send GET request</div><div class="text-[var(--muted)] mt-1">A statistical system requests an endpoint.</div></div>
+<div class="card p-4" style="background: linear-gradient(135deg, rgba(236,231,255,0.9), rgba(255,255,255,0.96));"><div class="smallcaps">2</div><div class="font-semibold mt-1">Receive JSON</div><div class="text-[var(--muted)] mt-1">The published data is returned in a machine-readable format.</div></div>
+<div class="card p-4" style="background: linear-gradient(135deg, rgba(223,247,239,0.9), rgba(255,255,255,0.96));"><div class="smallcaps">3</div><div class="font-semibold mt-1">Integrate</div><div class="text-[var(--muted)] mt-1">The consumer can store, analyse, or display the response.</div></div>
+</div>
+</section>
+<section class="card p-6" style="background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(236,247,255,0.95));">
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+<div><h2 class="section-title text-xl">1. Published index</h2><p class="text-[var(--muted)] text-sm mt-1">Returns one date or a date range of published daily index values.</p></div>
+<button onclick="tryApi('/api/v1/index?date=2026-09-20','indexOutput')" class="button-secondary">Try API</button>
+</div>
+<code style="display:block; margin-top:16px; padding:12px 14px; border-radius:12px; background:rgba(109,127,232,0.06); border:1px solid rgba(109,127,232,0.18); color:var(--accent-deep);">GET /api/v1/index?date=2026-09-20</code>
+<p class="text-[var(--muted)] text-sm mt-2">Also supports <code>?from=YYYY-MM-DD&amp;to=YYYY-MM-DD</code> and <code>?limit=1..366</code>.</p>
+<pre id="indexOutput" class="mt-4 hidden overflow-auto max-h-96 rounded-lg p-4 text-sm" style="background:rgba(109,127,232,0.04); border:1px solid var(--border); color:var(--ink);"></pre>
+</section>
+<section class="card p-6" style="background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(236,247,255,0.95));">
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+<div><h2 class="section-title text-xl">2. Index traceability</h2><p class="text-[var(--muted)] text-sm mt-1">Explains how a selected index is decomposed across route, airline, and booking window.</p></div>
+<button onclick="tryApi('/api/v1/traceability?date=2026-09-20','traceOutput')" class="button-secondary">Try API</button>
+</div>
+<code style="display:block; margin-top:16px; padding:12px 14px; border-radius:12px; background:rgba(109,127,232,0.06); border:1px solid rgba(109,127,232,0.18); color:var(--accent-deep);">GET /api/v1/traceability?date=2026-09-20</code>
+<pre id="traceOutput" class="mt-4 hidden overflow-auto max-h-96 rounded-lg p-4 text-sm" style="background:rgba(109,127,232,0.04); border:1px solid var(--border); color:var(--ink);"></pre>
+</section>
+<section class="card p-6" style="background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(236,247,255,0.95));">
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+<div><h2 class="section-title text-xl">3. Dataset metadata</h2><p class="text-[var(--muted)] text-sm mt-1">Returns the dataset definition, reference period, base period, methodology, and source classification.</p></div>
+<button onclick="tryApi('/api/v1/metadata','metaOutput')" class="button-secondary">Try API</button>
+</div>
+<code style="display:block; margin-top:16px; padding:12px 14px; border-radius:12px; background:rgba(109,127,232,0.06); border:1px solid rgba(109,127,232,0.18); color:var(--accent-deep);">GET /api/v1/metadata</code>
+<pre id="metaOutput" class="mt-4 hidden overflow-auto max-h-96 rounded-lg p-4 text-sm" style="background:rgba(109,127,232,0.04); border:1px solid var(--border); color:var(--ink);"></pre>
+</section>
+<section class="card p-6" style="background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(236,247,255,0.92));">
+<h2 class="section-title text-xl">Example integration</h2>
+<p class="text-[var(--muted)] text-sm mt-2">A consumer can call the endpoint from ordinary application code:</p>
+<pre class="mt-4 overflow-auto rounded-lg p-4 text-sm" style="background:rgba(109,127,232,0.05); border:1px solid var(--border); color:var(--ink);"><span>fetch('https://airfare.hatchable.site/api/v1/index?date=2026-09-20')</span><br><span>&nbsp;&nbsp;.then(response =&gt; response.json())</span><br><span>&nbsp;&nbsp;.then(data =&gt; console.log(data.data));</span></pre>
+</section>
+<section class="card p-6" style="background: linear-gradient(135deg, rgba(223,247,239,0.72), rgba(255,255,255,0.96)); border-color: rgba(134, 215, 196, 0.28);">
+<h2 class="font-semibold">Prototype data notice</h2>
+<p class="text-sm mt-2" style="color: var(--muted);">The current published index uses synthetic airfare observations for demonstration. The API interface is real and publicly callable; the current values are not official NSO/RBI statistics.</p>
+</section>
+</main>
+<script>
+async function tryApi(url,id){
+ const out=document.getElementById(id); out.classList.remove('hidden'); out.textContent='Loading…';
+ try { const r=await fetch(url); const body=await r.json(); out.textContent=JSON.stringify(body,null,2); }
+ catch(e){ out.textContent='Request failed: '+e.message; }
+}
+</script>
+</body></html>
